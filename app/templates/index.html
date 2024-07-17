@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Language Translation Service</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.1/css/bootstrap.min.css">
+    <style>
+        body,
+        html {
+            height: 100%;
+            margin: 0;
+            background-color: white;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .content {
+            flex: 1;
+        }
+
+        .navbar {
+            background-color: #34568B;
+        }
+
+        .btn-primary {
+            background-color: #88B04B;
+            border-color: #88B04B;
+        }
+
+        .form-label {
+            color: #34568B;
+        }
+
+        .logo {
+            max-width: 30%;
+            height: auto;
+            padding: 20px;
+        }
+
+        .footer {
+            color: black;
+            text-align: center;
+            padding: 10px 0;
+            width: 100%;
+        }
+
+        .form-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            height: 100%;
+            padding: 20px;
+        }
+
+        .form-box {
+            width: 100%;
+            max-width: 600px;
+            margin: 10px 0;
+        }
+
+        .btn-container {
+            text-align: center;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary fixed-top">
+        <a class="navbar-navbar" href="#">Translation Service app...</a>
+    </nav>
+
+        <div class="container">
+            <h1 class="text-center mt-5" >Translation service</h1>
+
+
+            <form id="translationForm">
+                <div class="form-group">
+                    <label for="textToTranslate">Text to translate</label>
+                    <textarea class="form-control" id="textToTranslate" rows="4"
+                        placeholder="Enter text here..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="languages">Languages (comma-separated)</label>
+                    <input type="text" class="form-control" id="languages" placeholder="e.g. es,fr,cn">
+                </div>
+                <button type="button" class="btn btn-primary translate-button" onclick="submitTranslation()">Translate</button>
+            </form>
+
+            <div class="mt-4" id="results" style="display: none;">
+                <h3>Translation Results</h3>
+                <pre id="translationResults"></pre>
+            </div>
+
+            <div class="mt-4" id="progress-container" style="display: none;">
+                <h4 id="progress-text">Translation in progress...</h4>
+                <div class="progress">
+                    <div id="progress-bar" class="progress-bar progress-bar-stripped progress-bar-animated" role="progressbar" ></div>
+                </div>
+            </div>
+
+            <div class="mt-4">
+                <label for="search-id">Check Translation by ID</label>
+                <input type="number" id="search-id" class="form-control" placeholder="Enter Translation ID">
+                <button id="search-button" class="bnt btn-info mt-2" onclick="checkTranlationStatus()">Check Status</button>
+                <button id="content-button" class="bnt btn-secondary mt-2" onclick="checkTranlationContent()">Check Content</button>
+            </div>
+
+            <div class="mt-4" id="status-container" style="display: none;">
+                <h4>Translation Status</h4>
+                <pre id="statusResult"></pre>
+            </div>
+
+
+            <div class="mt-4" id="content-container" style="display: none;">
+                <h4>Translation Content</h4>
+                <pre id="contentResult"></pre>
+            </div>
+
+        </div>
+
+        <!-- bootstrap JS and dependencies -->
+        <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
+        <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+        <!-- Axios for making HTTP requests -->
+         <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+
+<script>
+    async function submitTranslation() {
+        const text = document.getElementById("textToTranslate").value;
+        const languages = document.getElementById("languages").value.split(",").map(lang => lang.trim());
+
+        if (!text || languages === 0 || languages[0]) {
+            alert("Please provide both text and target language.");
+            return;
+        }
+
+        const progressbar = document.getElementById("progress-bar");
+        const progressText = document.getElementById("progress-text");
+        progressbar.classList.remove("bg-success");
+        progressbar.classList.add("bg-primary");
+        progressbar.style.width  = "0%";
+        progressText.textContent = "Translation in progress..."
+
+
+        try {
+            const response = await axios.post("localhost:8000/translate",{
+                text: text,
+                languages: languages
+            });
+
+            const taskId = response.data.task_id;
+            alert(`Task ID: ${taskId}`);
+
+            document.getElementById("progress-container").style.display = "block";
+            document.getElementById("results").style.display = "none";
+            document.getElementById("status-container").style.display = "none";
+            document.getElementById("content-container").style.display = "none";
+
+            let translationResult = null;
+            let progress = 0;
+            while (progress < 100) {
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                const resultResponse =  await axios.get(`localhost:8000/translate/${taskId}`);
+
+                translationResult = resultResponse.data;
+                if (translationResult === "completed") {
+                    progress = 100;
+                } else {
+                    progressbar.style.width = "50%";
+
+                }
+
+                progressbar.classList.remove("bg-primary");
+                progressbar.classList.add("bg-success");
+                progressbar.style.width = "100%";
+                progressText.textContent = "Translation complete!";
+
+                document.getElementById("translationResults").textContent = JSON.stringify(translationResult.translation);
+                document.getElementById("results").textContent.style.display = "block";
+            }
+        } catch (error) {
+            console.error("Error submittiig translation: ", error)
+            alert("An error occured while tranlating, please try again")
+        }
+    }
+
+    // TODO
+    async function checkTranlationStatus() {
+        return;
+    }
+
+    // TODO
+    async function checkTranlationContent() {
+        return;
+    }
+
+
+
+</script>
+
+
+
+
+
+
+</body>
+
+</html>

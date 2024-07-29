@@ -1,13 +1,15 @@
 
 import pathlib
-from fastapi import FastAPI, BackgroundTasks, HTTPException, Request, Depends
+from fastapi import FastAPI, BackgroundTasks, HTTPException, Request, Depends, status
 from fastapi.responses import HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.templating import Jinja2Templates
 
-from schemas import TaskResponse, TranslationRequest
+from sqlalchemy.orm import Session
+from schemas import TaskResponse, TranslationRequest, TranslationStatus
 from database import get_db, engine
-from crud import create_translation_task, get_translation_task, update_translation_task
+from crud import create_translation_task, get_translation_task
+from utils import perform_translation
 import models
 
 
@@ -35,11 +37,29 @@ def index(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
 
 @app.post("/translate", response_model=TaskResponse)
-def translate(request: TranslationRequest, background_tasks: BackgroundTasks):
+def translate(request: TranslationRequest, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
 
-    task = create_translation_task(get_db(), request.text, request.languages)
+    task = create_translation_task(db, request.text, request.languages)
 
     background_tasks.add_task(perform_translation, task.id, request.text, request.languages, db)
 
     return {"task_id": task.id}
+
+@app.get("/translate/status/{task_id}", response_model=TranslationStatus)
+def get_translate_status(task_id: int, db: Session = Depends(get_db)):
+
+    task = get_translation_task(db, task_id)
+    if not task:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
+
+    return {"task_id": task.id, "status": task.status, "translation": task.translation}
+
+@app.get("/translate/content/{task_id}", response_model=TranslationStatus)
+def get_translate_content(task_id: int, db: Session = Depends(get_db)):
+
+    task = get_translation_task(db, task_id)
+    if not task:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
+
+    return {task}
 

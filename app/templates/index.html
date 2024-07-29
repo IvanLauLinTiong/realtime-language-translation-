@@ -134,7 +134,7 @@
         const text = document.getElementById("textToTranslate").value;
         const languages = document.getElementById("languages").value.split(",").map(lang => lang.trim());
 
-        if (!text || languages === 0 || languages[0]) {
+        if (!text || languages === 0 || languages[0] === 0) {
             alert("Please provide both text and target language.");
             return;
         }

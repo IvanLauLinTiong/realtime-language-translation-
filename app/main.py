@@ -45,21 +45,21 @@ def translate(request: TranslationRequest, background_tasks: BackgroundTasks, db
 
     return {"task_id": task.id}
 
-@app.get("/translate/status/{task_id}", response_model=TranslationStatus)
+@app.get("/translate/{task_id}", response_model=TranslationStatus)
 def get_translate_status(task_id: int, db: Session = Depends(get_db)):
 
     task = get_translation_task(db, task_id)
     if not task:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
 
-    return {"task_id": task.id, "status": task.status, "translation": task.translation}
+    return {"task_id": task.id, "status": task.status, "translations": task.translations}
 
-@app.get("/translate/content/{task_id}", response_model=TranslationStatus)
+@app.get("/translate/content/{task_id}")
 def get_translate_content(task_id: int, db: Session = Depends(get_db)):
 
     task = get_translation_task(db, task_id)
     if not task:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
 
-    return {task}
+    return task
 

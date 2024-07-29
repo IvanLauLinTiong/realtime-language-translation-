@@ -148,7 +148,7 @@
 
 
         try {
-            const response = await axios.post("localhost:8000/translate",{
+            const response = await axios.post("http://localhost:8000/translate",{
                 text: text,
                 languages: languages
             });
@@ -165,47 +165,57 @@
             let progress = 0;
             while (progress < 100) {
                 await new Promise(resolve => setTimeout(resolve, 1000));
-                const resultResponse =  await axios.get(`localhost:8000/translate/${taskId}`);
+                const resultResponse =  await axios.get(`http://localhost:8000/translate/${taskId}`);
 
                 translationResult = resultResponse.data;
-                if (translationResult === "completed") {
+                if (translationResult.status === "completed") {
                     progress = 100;
                 } else {
                     progressbar.style.width = "50%";
 
                 }
+            }
 
                 progressbar.classList.remove("bg-primary");
                 progressbar.classList.add("bg-success");
                 progressbar.style.width = "100%";
                 progressText.textContent = "Translation complete!";
 
-                document.getElementById("translationResults").textContent = JSON.stringify(translationResult.translation);
-                document.getElementById("results").textContent.style.display = "block";
-            }
+                document.getElementById("translationResults").textContent = JSON.stringify(translationResult.translations, null, 2);
+                document.getElementById("results").style.display = "block";
         } catch (error) {
-            console.error("Error submittiig translation: ", error)
-            alert("An error occured while tranlating, please try again")
+            console.error("Error submitting translation: ", error)
+            alert("An error occured while translating, please try again")
         }
     }
 
-    // TODO
     async function checkTranlationStatus() {
-        return;
+        const taskId = document.getElementById("search-id").value;
+        try {
+            const resultResponse =  await axios.get(`http://localhost:8000/translate/${taskId}`);
+            const translationResult = resultResponse.data;
+            document.getElementById("statusResult").textContent = `Status: ${translationResult.status}`;
+            document.getElementById("status-container").style.display = "block";
+        } catch (error) {
+            console.error("Error fetching translation status: ", error);
+            alert("An error occured while fetching translation status, please try again");
+
+        }
     }
 
-    // TODO
     async function checkTranlationContent() {
-        return;
+        const taskId = document.getElementById("search-id").value;
+        try {
+            const resultResponse =  await axios.get(`http://localhost:8000/translate/content/${taskId}`);
+            const contentResult = resultResponse.data;
+            document.getElementById("contentResult").textContent = JSON.stringify(contentResult, null, 2);
+            document.getElementById("content-container").style.display = "block";
+        } catch (error) {
+            console.error("Error fetching translation content: ", error);
+            alert("An error occured while fetching translation content, please try again");
+        }
     }
-
-
-
 </script>
-
-
-
-
 
 
 </body>

@@ -5,7 +5,7 @@ def create_translation_task(db: Session, text: str, languages: list):
     task = models.TranslationTask(text=text, languages=languages)
     db.add(task)
     db.commit()
-    db.refresh()
+    db.refresh(task)
     return task
 
 def get_translation_task(db: Session, task_id: int):
